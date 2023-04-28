@@ -7,6 +7,7 @@
     +$  versioned-state
       $%  state-1
           state-2
+          state-3
       ==
     +$  state-1
       $:  %1
@@ -19,8 +20,15 @@
           drafts=(map path md=@t)
           themes=(map @tas css=@t)
       ==
+    +$  state-3
+      $:  %3
+          files=(map path [html=@t md=@t theme=@tas])
+          drafts=(map path md=@t)
+          themes=(map @tas css=@t)
+          feed=@t
+      ==
     --
-=|  state-2
+=|  state-3
 =*  state  -
 |_  =bowl:gall
 +*  this  .
@@ -44,13 +52,29 @@
         ==
     %=    this
         state
-      :^    %2
-          (~(urn by files.old) |=([=path html=@t md=@t] [html md %none]))
-        drafts.old
-      (~(gas by *(map @tas @t)) [%default default-theme:blog-lib]~)
+      =/  new-files
+        (~(urn by files.old) |=([=path html=@t md=@t] [html md %none]))
+      :*    %3
+          new-files
+          drafts.old
+          (~(gas by *(map @tas @t)) [%default default-theme:blog-lib]~)
+          (build-rss:blog-lib new-files our.bowl)
+      ==
     ==
   ::
-      %2  `this(state old)
+      %2
+    :-  ~
+    %=    this
+        state
+      :*  %3
+        files.old
+        drafts.old
+        themes.old
+        (build-rss:blog-lib files.old our.bowl)
+      ==
+    ==
+  ::
+      %3  `this(state old)
   ==
 ::
 ++  on-poke
@@ -94,11 +118,21 @@
     ?>  =(src.bowl our.bowl)
     ?-    -.act
         %publish
-      :_  this(files (~(put by files) [path html md theme]:act))
+      =/  new-files  (~(put by files) [path html md theme]:act)
+      :_
+        %=  this
+          files  new-files
+          feed   (build-rss:blog-lib new-files our.bowl)
+        ==
       [%pass /bind %arvo %e %connect `path.act dap.bowl]~
     ::
         %unpublish
-      :_  this(files (~(del by files) path.act))
+      =/  new-files  (~(del by files) path.act)
+      :_
+        %=  this
+          files  new-files
+          feed   (build-rss:blog-lib new-files our.bowl)
+        ==
       [%pass /bind %arvo %e %disconnect `path.act]~
     ::
         %export
@@ -131,6 +165,10 @@
           [%pass /info %arvo %c %info %blog %& soba-css]
       ==
     ::
+      %rss
+    ~&  >  "RSS requested."
+    `this
+    ::
       %save-draft    `this(drafts (~(put by drafts) [path md]:act))
       %delete-draft  `this(drafts (~(del by drafts) path.act))
       %save-theme    `this(themes (~(put by themes) [theme css]:act))
@@ -154,6 +192,7 @@
       [%x %html ^]     ``blog+!>(-:(~(got by files) t.t.path))
       [%x %draft ^]    ``blog+!>((~(got by drafts) t.t.path))
       [%x %theme @ ~]  ``blog+!>((~(got by themes) i.t.t.path))
+      [%x %rss %xml ~]  ``html+!>(feed)
   ::
       [%x %pages ~]
     =;  pages  ``json+!>([%a pages])
