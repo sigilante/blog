@@ -28,3 +28,9 @@ To see it, ensure you have mounted the blog desk with `|mount %blog`.
 - document generator for %publish `:blog|publish /i/am/a/path 'I am a microblog.'
 - fix RSS poke
 - fix RSS endpoint (unregistered in Eyre)
+- no metadata in %blog?
+
+to think about:
+
+- simplify out bowl stuff?
+- change to store HTML rather than `@t`
